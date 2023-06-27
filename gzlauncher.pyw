@@ -1,13 +1,31 @@
-from PySide6.QtWidgets import QFileDialog, QApplication, QPushButton, QLabel, QLineEdit, QGridLayout, QWidget, QListWidget, QListWidgetItem
-import sys
 import os
+import shutil
+import sys
+from pathlib import Path
+
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+    QWidget,
+)
 
 # Read/create text files initially
 if not os.path.exists("./cfg"):
     os.mkdir("./cfg")
     open("./cfg/wads.txt", "a").close()
-    open("./cfg/gzpath.txt", "a").close()
     
+    #try to find it in PATH
+    with open("./cfg/gzpath.txt", "w") as gzpfile:
+        if pth := shutil.which("gzdoom"):
+            print(f"gzdoom found at {pth}")
+            gzpfile.write(pth)
+
 with open("./cfg/wads.txt", "r") as wads:
     wadList = wads.readlines()
     wadList = [i.strip("\n") for i in wadList]
