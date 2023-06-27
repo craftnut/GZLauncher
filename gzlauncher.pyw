@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import sys
@@ -15,23 +16,33 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-# Read/create text files initially
-if not os.path.exists("./cfg"):
-    os.mkdir("./cfg")
-    open("./cfg/wads.txt", "a").close()
-    
-    #try to find it in PATH
-    with open("./cfg/gzpath.txt", "w") as gzpfile:
-        if pth := shutil.which("gzdoom"):
-            print(f"gzdoom found at {pth}")
-            gzpfile.write(pth)
+cfgPath = Path("config.json")
+cfg = {
+    "gzdoom_path": "",
+    "wads": [],
+}
 
-with open("./cfg/wads.txt", "r") as wads:
-    wadList = wads.readlines()
-    wadList = [i.strip("\n") for i in wadList]
 
-with open("./cfg/gzpath.txt", "r") as gzPathTxt:
-    gzPathTxt = gzPathTxt.readlines()
+def saveConfig():
+    with open(cfgPath, "w") as file:
+        json.dump(cfg, file, indent=4)
+
+def loadConfig():
+    with open(cfgPath) as file:
+        return json.load(file)
+
+if not cfgPath.exists(): # autofill things
+    if pth:=shutil.which("gzdoom"):
+        assert pth is not None, "What"
+        print(f"gzdoom found at {pth}")
+        cfg["gzdoom_path"] = pth
+    saveConfig()
+else:
+    cfg.update(loadConfig())
+
+gzPath: str = cfg['gzdoom_path']
+wadList: list[str] = cfg['wads']
+
 
 
 class Launcher(QWidget):
@@ -53,8 +64,7 @@ class Launcher(QWidget):
         # GZDoom path selection
         gzPathLabel = QLabel("Path to GZDoom executable:")
         self.gzPath = QLineEdit()
-        if gzPathTxt:
-            self.gzPath.setText(str(gzPathTxt[0]))
+        self.gzPath.setText(gzPath)
         gzPathSelect = QPushButton("Choose Path")
         
         # Launch GZDoom button
@@ -80,6 +90,7 @@ class Launcher(QWidget):
         # Button connections
         addWad.clicked.connect(self.addWadFunction)
         removeWad.clicked.connect(self.removeWadFunction)
+        self.gzPath.textChanged.connect(self.gzPath_changed)
         gzPathSelect.clicked.connect(self.selectGzPath)
         launchButton.clicked.connect(self.launch)
         self.wadListWidget.itemDoubleClicked.connect(self.launch)
@@ -91,10 +102,8 @@ class Launcher(QWidget):
         addWad.setText(wadSelect)
         self.wadListWidget.addItem(addWad)
         wadList.append(wadSelect)
-        
-        with open("./cfg/wads.txt", "w") as wads:
-            wads.write("\n".join(wadList))
-            
+        saveConfig()
+
     def removeWadFunction(self):
                
         wadToRemove = self.wadListWidget.selectedItems()
@@ -103,22 +112,23 @@ class Launcher(QWidget):
             
         wadRemoveIndex = self.wadListWidget.currentRow()
         wadList.pop(wadRemoveIndex)
-           
-        with open("./cfg/wads.txt", "w") as wads:
-            wads.write("\n".join(wadList))
+        
+        saveConfig()
         
     # Function for selecting GZDoom executable
     def selectGzPath(self):
         gzExeLoc = SelectFile.getOpenFileName(self, 'Select gzdoom.exe', filter='GZDoom (gzdoom.exe)')[0]
         self.gzPath.setText(str(gzExeLoc))
         
-        with open("./cfg/gzpath.txt", "w") as gzPathTxt:
-            gzPathTxt.write(str(gzExeLoc))
+    def gzPath_changed(self, text):
+        cfg["gzdoom_path"] = text
+        saveConfig()
+        
         
     # Function for launching into GZDoom
     def launch(self):
         launchWad = self.wadListWidget.currentItem().text()
-        os.popen(f'"{gzPathTxt[0]}" -iwad "{launchWad}"')
+        os.popen(f'"{gzPath}" -iwad "{launchWad}"')
         
 # File selection box window
 class SelectFile(QFileDialog):
