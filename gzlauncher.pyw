@@ -38,15 +38,11 @@ def loadConfig():
         return json.load(file)
 
 if not cfgPath.exists(): # autofill things
-    if pth:=shutil.which("gzdoom"):
-        assert pth is not None, "What"
-        print(f"gzdoom found at {pth}")
-        cfg["gzdoom_path"] = pth
     saveConfig()
 else:
     cfg.update(loadConfig())
 
-gzPath: str = cfg['gzdoom_path']
+gzExecutablePath: str = cfg['gzdoom_path']
 wadList: list[str] = cfg['wads']
 modList: list[str] = cfg['mod']
 previousCfg: str = cfg['last_used_cfg']
@@ -121,7 +117,13 @@ class Launcher(QWidget):
         # GZDoom path selection
         gzPathLabel = QLabel("Path to GZDoom executable:")
         self.gzPath = QLineEdit()
-        self.gzPath.setText(gzPath)
+        if gzExecutablePath:
+            self.gzPath.setText(gzExecutablePath)
+        if pth:=shutil.which("gzdoom"):
+            assert pth is not None, "What"
+            print(f"gzdoom found at {pth}")
+            self.gzPath.setPlaceholderText(pth)
+        
         gzPathSelect = QPushButton("Choose Path")
         
         # Launch GZDoom button
@@ -213,7 +215,8 @@ class Launcher(QWidget):
         usedConfig = self.cfgDropDown.currentText()
         launchWad = self.wadListWidget.currentItem().text()
         launchMod = [item.text() for item in self.modListWidget.selectedItems()]
-        command = [gzPath, *launchMod, "-iwad", launchWad, "-config", f"./cfg/{usedConfig}"]
+        exePath = self.gzPath.text() or self.gzPath.placeholderText()
+        command = [exePath, *launchMod, "-iwad", launchWad, "-config", f"./cfg/{usedConfig}"]
         print(f"launching: {command}")
         
         cfg['last_used_cfg'] = usedConfig
@@ -224,7 +227,8 @@ class Launcher(QWidget):
     def launchNoPk(self):
         usedConfig = self.cfgDropDown.currentText()
         launchWad = self.wadListWidget.currentItem().text()
-        command = [gzPath, "-iwad", launchWad, "-config", f"./cfg/{usedConfig}"]
+        exePath = self.gzPath.text() or self.gzPath.placeholderText()
+        command = [exePath, "-iwad", launchWad, "-config", f"./cfg/{usedConfig}"]
         
         cfg['last_used_cfg'] = usedConfig
         saveConfig()
