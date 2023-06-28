@@ -1,6 +1,5 @@
 .env
 .venv
-cfg
 config.json
 *.wad
 *.WAD

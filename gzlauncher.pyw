@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QComboBox,
     QWidget,
 )
 
@@ -23,7 +24,8 @@ cfgPath = Path("config.json")
 cfg = {
     "gzdoom_path": "",
     "wads": [],
-    "pk3": [],
+    "mod": [],
+    "last_used_cfg": "",
 }
 
 
@@ -46,8 +48,10 @@ else:
 
 gzPath: str = cfg['gzdoom_path']
 wadList: list[str] = cfg['wads']
-pk3List: list[str] = cfg['pk3']
+modList: list[str] = cfg['mod']
+previousCfg: str = cfg['last_used_cfg']
 
+configs = [str(file.relative_to("./cfg")) for file in Path("./cfg").rglob("*.ini")]
 
 class FileListWidget(QListWidget):
     def __init__(self, parent, correspondingList: list):
@@ -99,20 +103,20 @@ class Launcher(QWidget):
         # WAD List
         self.wadListWidget = FileListWidget(self, wadList)
             
-        # PK3 List
-        self.pk3ListWidget = FileListWidget(self, pk3List)
-        self.pk3ListWidget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        # allows multiple pk3's
+        # Mod List
+        self.modListWidget = FileListWidget(self, modList)
+        self.modListWidget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        # allows multiple mods to be selected
         
         # Other WAD-related widgets
         addWad = QPushButton("Add WAD")
         removeWad = QPushButton("Remove WAD")
         wadSelectLabel = QLabel("Select a WAD:")
         
-        # Other PK3-related widgets
-        addPk3 = QPushButton("Add Mod")
-        removePk3 = QPushButton("Remove Mod")
-        pk3SelectLabel = QLabel("Select Mod(s):")
+        # Other Mod-related widgets
+        addMod = QPushButton("Add Mod")
+        removeMod = QPushButton("Remove Mod")
+        modSelectLabel = QLabel("Select Mod(s):")
         
         # GZDoom path selection
         gzPathLabel = QLabel("Path to GZDoom executable:")
@@ -122,7 +126,12 @@ class Launcher(QWidget):
         
         # Launch GZDoom button
         launchButton = QPushButton("Launch")
-        noPk3LaunchButton = QPushButton("Launch without mods")
+        noModLaunchButton = QPushButton("Launch without mods")
+        
+        self.cfgDropDown = QComboBox()
+        self.cfgDropDown.addItems(configs)
+        if self.cfgDropDown.findText(previousCfg) != -1:
+            self.cfgDropDown.setCurrentText(previousCfg)
         
         # Launcher layout
         launcherLayout = QGridLayout(self)
@@ -133,33 +142,34 @@ class Launcher(QWidget):
         launcherLayout.addWidget(addWad, 2, 0, 1, 1)
         launcherLayout.addWidget(removeWad, 2, 1, 1, 1)
         
-        # PK3 list in layout
-        launcherLayout.addWidget(pk3SelectLabel, 3, 0, 1, 2)
-        launcherLayout.addWidget(self.pk3ListWidget, 4, 0, 1, 2)
-        launcherLayout.addWidget(addPk3, 5, 0, 1, 1)
-        launcherLayout.addWidget(removePk3, 5, 1, 1, 1)
+        # Mod list in layout
+        launcherLayout.addWidget(modSelectLabel, 3, 0, 1, 2)
+        launcherLayout.addWidget(self.modListWidget, 4, 0, 1, 2)
+        launcherLayout.addWidget(addMod, 5, 0, 1, 1)
+        launcherLayout.addWidget(removeMod, 5, 1, 1, 1)
         
         # GZDoom path selection in layout
         launcherLayout.addWidget(gzPathLabel, 6, 0, 1, 2)
         launcherLayout.addWidget(self.gzPath, 7, 0, 1, 1)
         launcherLayout.addWidget(gzPathSelect, 7, 1, 1, 1)
         
-        # Launch button
-        launcherLayout.addWidget(launchButton, 8, 0, 1, 2)
-        launcherLayout.addWidget(noPk3LaunchButton, 9, 0, 1, 2) # ADD FUNCTIONALITY!!!!
+        # Launch button and configs dropdown
+        launcherLayout.addWidget(launchButton, 8, 0, 1, 1)
+        launcherLayout.addWidget(self.cfgDropDown, 8, 1, 1, 1)
+        launcherLayout.addWidget(noModLaunchButton, 9, 0, 1, 2)
         
         # Button connections
         addWad.clicked.connect(self.addWadFunction)
         removeWad.clicked.connect(self.removeWadFunction)
         
-        addPk3.clicked.connect(self.addPk3Function)
-        removePk3.clicked.connect(self.removePk3Function)
+        addMod.clicked.connect(self.addModFunction)
+        removeMod.clicked.connect(self.removeModFunction)
         
         self.gzPath.textChanged.connect(self.gzPath_changed)
         gzPathSelect.clicked.connect(self.selectGzPath)
         
         launchButton.clicked.connect(self.launch)
-        noPk3LaunchButton.clicked.connect(self.launchNoPk)
+        noModLaunchButton.clicked.connect(self.launchNoPk)
         
         self.wadListWidget.itemDoubleClicked.connect(self.launch)
 
@@ -180,14 +190,14 @@ class Launcher(QWidget):
     def addWadFunction(self):
         self.adderFunction(self.wadListWidget, 'Select WAD', filter='WAD files (*.wad, *.WAD)')
 
-    def addPk3Function(self):
-        self.adderFunction(self.pk3ListWidget, 'Select mod (*.wad, *.WAD, *.pk3, *.PK3)')
+    def addModFunction(self):
+        self.adderFunction(self.modListWidget, 'Select mod (*.wad, *.WAD, *.pk3, *.PK3)')
 
     def removeWadFunction(self):
         self.removerFunction(self.wadListWidget)
 
-    def removePk3Function(self):
-        self.removerFunction(self.pk3ListWidget)
+    def removeModFunction(self):
+        self.removerFunction(self.modListWidget)
 
     # Function for selecting GZDoom executable
     def selectGzPath(self):
@@ -200,16 +210,27 @@ class Launcher(QWidget):
 
     # Function for launching into GZDoom
     def launch(self):
+        usedConfig = self.cfgDropDown.currentText()
         launchWad = self.wadListWidget.currentItem().text()
-        launchPk3 = [item.text() for item in self.pk3ListWidget.selectedItems()]
-        command = [gzPath, *launchPk3, "-iwad", launchWad]
+        launchMod = [item.text() for item in self.modListWidget.selectedItems()]
+        command = [gzPath, *launchMod, "-iwad", launchWad, "-config", f"./cfg/{usedConfig}"]
         print(f"launching: {command}")
+        
+        cfg['last_used_cfg'] = usedConfig
+        saveConfig()
 
         subprocess.Popen(command)
 
     def launchNoPk(self):
+        usedConfig = self.cfgDropDown.currentText()
         launchWad = self.wadListWidget.currentItem().text()
-        os.popen(f"{gzPath} -iwad {launchWad}")
+        command = [gzPath, "-iwad", launchWad, "-config", f"./cfg/{usedConfig}"]
+        
+        cfg['last_used_cfg'] = usedConfig
+        saveConfig()
+        
+        subprocess.Popen(command)
+        
 # File selection box window
 class SelectFile(QFileDialog):
     def __init__(self):
