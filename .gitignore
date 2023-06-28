@@ -2,3 +2,9 @@
 .venv
 cfg
 config.json
+*.wad
+*.WAD
+*.pk3
+gzlauncher.spec
+dist
+build
