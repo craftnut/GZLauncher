@@ -110,9 +110,9 @@ class Launcher(QWidget):
         wadSelectLabel = QLabel("Select a WAD:")
         
         # Other PK3-related widgets
-        addPk3 = QPushButton("Add PK3")
-        removePk3 = QPushButton("Remove PK3")
-        pk3SelectLabel = QLabel("Select a PK3:")
+        addPk3 = QPushButton("Add Mod")
+        removePk3 = QPushButton("Remove Mod")
+        pk3SelectLabel = QLabel("Select Mod(s):")
         
         # GZDoom path selection
         gzPathLabel = QLabel("Path to GZDoom executable:")
@@ -122,7 +122,7 @@ class Launcher(QWidget):
         
         # Launch GZDoom button
         launchButton = QPushButton("Launch")
-        noPk3LaunchButton = QPushButton("Launch without PK3")
+        noPk3LaunchButton = QPushButton("Launch without mods")
         
         # Launcher layout
         launcherLayout = QGridLayout(self)
@@ -181,7 +181,7 @@ class Launcher(QWidget):
         self.adderFunction(self.wadListWidget, 'Select WAD', filter='WAD files (*.wad, *.WAD)')
 
     def addPk3Function(self):
-        self.adderFunction(self.pk3ListWidget, 'Select PK3')
+        self.adderFunction(self.pk3ListWidget, 'Select mod (*.wad, *.WAD, *.pk3, *.PK3)')
 
     def removeWadFunction(self):
         self.removerFunction(self.wadListWidget)
@@ -191,7 +191,7 @@ class Launcher(QWidget):
 
     # Function for selecting GZDoom executable
     def selectGzPath(self):
-        gzExeLoc = SelectFile.getOpenFileName(self, 'Select gzdoom.exe', filter='GZDoom (gzdoom.exe)')[0]
+        gzExeLoc = SelectFile.getOpenFileName(self, 'Select gzdoom exectuable')[0]
         self.gzPath.setText(str(gzExeLoc))
 
     def gzPath_changed(self, text):
