@@ -1,10 +1,13 @@
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
+from PySide6 import QtCore
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QFileDialog,
     QGridLayout,
@@ -46,6 +49,46 @@ wadList: list[str] = cfg['wads']
 pk3List: list[str] = cfg['pk3']
 
 
+class FileListWidget(QListWidget):
+    def __init__(self, parent, correspondingList: list):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.list = correspondingList
+        self.populate(correspondingList)
+
+    def populate(self, lst):
+        for entry in lst:
+            QListWidgetItem(entry, self)
+
+    def add(self, item: QListWidgetItem):
+        self.addItem(item)
+        self.list.append(item.text())
+
+    def remove(self, item: QListWidgetItem):
+        self.list.remove(self.takeItem(self.row(item)).text())
+
+    def dragEnterEvent(self, event) -> None:
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    # Without this, dragging in a file is always denied. Not entirely sure why.
+    def dragMoveEvent(self, e) -> None:
+        e.accept()
+
+    def dropEvent(self, event) -> None:
+        event.setDropAction(QtCore.Qt.DropAction.CopyAction)
+        file_path: list[QtCore.QUrl] = event.mimeData().urls()
+        hasNewFiles = False
+        for file in file_path:
+            if (s:=file.toLocalFile()) not in self.list:
+                self.add(QListWidgetItem(s))
+                hasNewFiles = True
+            else:
+                print(f"{s} is in wad list")
+        if hasNewFiles:
+            saveConfig()
 
 class Launcher(QWidget):
     def __init__(self):
@@ -54,15 +97,13 @@ class Launcher(QWidget):
         self.setWindowTitle("GZLauncher")
         
         # WAD List
-        self.wadListWidget = QListWidget(self)
-        for entry in wadList:
-            QListWidgetItem(entry, self.wadListWidget)
+        self.wadListWidget = FileListWidget(self, wadList)
             
         # PK3 List
-        self.pk3ListWidget = QListWidget(self)
-        for entry in pk3List:
-            QListWidgetItem(entry, self.pk3ListWidget)
-            
+        self.pk3ListWidget = FileListWidget(self, pk3List)
+        self.pk3ListWidget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        # allows multiple pk3's
+        
         # Other WAD-related widgets
         addWad = QPushButton("Add WAD")
         removeWad = QPushButton("Remove WAD")
@@ -121,76 +162,54 @@ class Launcher(QWidget):
         noPk3LaunchButton.clicked.connect(self.launchNoPk)
         
         self.wadListWidget.itemDoubleClicked.connect(self.launch)
-        
-    # Function for adding WADs to the list
-    def addWadFunction(self):
-        wadSelect = SelectFile.getOpenFileName(self, 'Select WAD', filter='WAD files (*.wad, *.WAD)')[0]
-        if wadSelect:
-            
-            addWad = QListWidgetItem()
-            addWad.setText(wadSelect)
-            
-            self.wadListWidget.addItem(addWad)
-            wadList.append(wadSelect)
-            
-            saveConfig()
-            
-    def addPk3Function(self):
-        pk3select = SelectFile.getOpenFileName(self, 'Select PK3')[0]
-        if pk3select:
-            
-            addPk3 = QListWidgetItem()
-            addPk3.setText(pk3select)
-            
-            self.pk3ListWidget.addItem(addPk3)
-            pk3List.append(pk3select)
-            
+
+    # abstract Function for adding items to a list
+    def adderFunction(self, listwidget: FileListWidget, *select_args, **select_kwargs):
+        select: str = SelectFile.getOpenFileName(self, *select_args, **select_kwargs)[0]
+        if select:
+            listwidget.add(QListWidgetItem(select))
             saveConfig()
 
+    # abstract function for removing items from a list
+    def removerFunction(self, listwidget: FileListWidget):
+        toRemove = listwidget.selectedItems()
+        for item in toRemove:
+            listwidget.remove(item)
+        saveConfig()
+
+    def addWadFunction(self):
+        self.adderFunction(self.wadListWidget, 'Select WAD', filter='WAD files (*.wad, *.WAD)')
+
+    def addPk3Function(self):
+        self.adderFunction(self.pk3ListWidget, 'Select PK3')
+
     def removeWadFunction(self):
-               
-        wadToRemove = self.wadListWidget.selectedItems()
-        
-        for item in wadToRemove:
-            self.wadListWidget.takeItem(self.wadListWidget.row(item))
-            
-        wadRemoveIndex = self.wadListWidget.currentRow()
-        wadList.pop(wadRemoveIndex)
-        
-        saveConfig()
-        
+        self.removerFunction(self.wadListWidget)
+
     def removePk3Function(self):
-        
-        pk3ToRemove = self.pk3ListWidget.selectedItems()
-        
-        for item in pk3ToRemove:
-            self.pk3ListWidget.takeItem(self.pk3ListWidget.row(item))
-            
-        wadRemoveIndex = self.pk3ListWidget.currentRow()
-        wadList.pop(wadRemoveIndex)
-            
-        saveConfig()
-        
+        self.removerFunction(self.pk3ListWidget)
+
     # Function for selecting GZDoom executable
     def selectGzPath(self):
         gzExeLoc = SelectFile.getOpenFileName(self, 'Select gzdoom.exe', filter='GZDoom (gzdoom.exe)')[0]
         self.gzPath.setText(str(gzExeLoc))
-        
+
     def gzPath_changed(self, text):
         cfg["gzdoom_path"] = text
         saveConfig()
-        
-        
+
     # Function for launching into GZDoom
     def launch(self):
         launchWad = self.wadListWidget.currentItem().text()
-        launchPk3 = self.pk3ListWidget.currentItem().text()
-        os.popen(f"{gzPath} {launchPk3} -iwad {launchWad}")
-        
+        launchPk3 = [item.text() for item in self.pk3ListWidget.selectedItems()]
+        command = [gzPath, *launchPk3, "-iwad", launchWad]
+        print(f"launching: {command}")
+
+        subprocess.Popen(command)
+
     def launchNoPk(self):
         launchWad = self.wadListWidget.currentItem().text()
         os.popen(f"{gzPath} -iwad {launchWad}")
-        
 # File selection box window
 class SelectFile(QFileDialog):
     def __init__(self):

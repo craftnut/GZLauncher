@@ -2,3 +2,6 @@
 .venv
 cfg
 config.json
+*.wad
+*.WAD
+*.pk3
