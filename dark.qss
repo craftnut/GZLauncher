@@ -1,0 +1,40 @@
+QLabel {
+    background-color: #191919;
+    color: #FFFFFF;
+}
+
+QWidget {
+    background-color: #191919;
+}
+
+QListWidget {
+    background-color: #202020;
+    color: #FFFFFF;
+    border-color: #2b2b2b;
+    border-style: inset;
+    border-width: 1px;
+}
+
+QPushButton {
+    background-color: #202020;
+    color: #FFFFFF;
+    border-color: #2b2b2b;
+    border-style: outset;
+    border-width: 1px;
+}
+
+QComboBox {
+    background-color: #202020;
+    color: #FFFFFF;
+    border-color: #2b2b2b;
+    border-style: outset;
+    border-width: 1px;
+}
+
+QLineEdit {
+    background-color: #202020;
+    color: #FFFFFF;
+    border-color: #2b2b2b;
+    border-style: inset;
+    border-width: 1px;
+}

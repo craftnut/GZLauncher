@@ -244,4 +244,9 @@ app = QApplication(sys.argv)
 l = Launcher()
 l.resize(320, 550)
 l.show()
+
+with open("dark.qss", "r") as f:
+    _style = f.read()
+    app.setStyleSheet(_style)
+
 sys.exit(app.exec())
