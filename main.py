@@ -10,15 +10,13 @@ import sys
 from pathlib import Path
 import urllib.request
 
-version = '1.0-2' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!
+version = '1.0-3' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!
 
 with urllib.request.urlopen("https://api.github.com/repos/craftnut/GZLauncher/tags") as tags: 
     tags = json.load(tags)
     print(tags)
-    print(len(tags) - 1)
     
-    last = len(tags) - 1
-    latest_version = tags[last]
+    latest_version = tags[1]
     
     version_num = latest_version['name']
     dl_url = latest_version['zipball_url']
