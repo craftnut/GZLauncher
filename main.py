@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 import urllib.request
 
-version = '1.0-3' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!
+version = '1.0-2' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!
 
 with urllib.request.urlopen("https://api.github.com/repos/craftnut/GZLauncher/tags") as tags: 
     tags = json.load(tags)
@@ -29,7 +29,7 @@ with urllib.request.urlopen("https://api.github.com/repos/craftnut/GZLauncher/ta
         
         update = input(f'New version {version_num} available, would you like to update? (Y, n)')
         
-        if update in ['Y', '']:
+        if update in ['Y', 'y', '']:
             temp_dir = Path("./temp")
             temp_dir.mkdir()
             
@@ -40,8 +40,13 @@ with urllib.request.urlopen("https://api.github.com/repos/craftnut/GZLauncher/ta
             with ZipFile('./temp/temp.zip', 'r') as archive:
                 archive.extractall(path='./temp')
                 
-            os.rename('./temp/main.py', './main.py')
-            os.rename ('./temp/gzlauncher.pyw', './gzlauncher.pyw')  
+            temp_dir_list = os.listdir('./temp')
+            update = temp_dir_list[0]
+                
+            os.remove('./main.py')
+            os.remove('./gzlauncher.pyw')    
+            os.rename(f'./temp/{update}/main.py', './main.py')
+            os.rename (f'./temp/{update}/gzlauncher.pyw', './gzlauncher.pyw')  
             shutil.rmtree('./temp')
             
             subprocess.Popen([sys.executable, './main.py'])
