@@ -1,0 +1,11 @@
+= GZLauncher
+A replacement launcher for GZDoom, with mod support!
+
+== Features
+
+* Easy loading of mods in the PK3 or WAD format
+* Easily swap config files for different mods and games
+* Easily differientiate between different versions of DOOM
+* Cross-platform, works on every OS that can run Python and GZDoom
+
+image::ex.png[GZLauncher first launch on Windows]
