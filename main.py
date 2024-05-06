@@ -10,12 +10,15 @@ import sys
 from pathlib import Path
 import urllib.request
 
-version = '1.0-1' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!
+version = '1.0-2' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!
 
 with urllib.request.urlopen("https://api.github.com/repos/craftnut/GZLauncher/tags") as tags: 
     tags = json.load(tags)
     print(tags)
-    latest_version = tags[0]
+    print(len(tags) - 1)
+    
+    last = len(tags) - 1
+    latest_version = tags[last]
     
     version_num = latest_version['name']
     dl_url = latest_version['zipball_url']
@@ -26,7 +29,7 @@ with urllib.request.urlopen("https://api.github.com/repos/craftnut/GZLauncher/ta
     
     elif version_num != version:
         
-        update = input('New version {version_num} available, would you like to update? (Y, n)')
+        update = input(f'New version {version_num} available, would you like to update? (Y, n)')
         
         if update in ['Y', '']:
             temp_dir = Path("./temp")
