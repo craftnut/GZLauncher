@@ -10,8 +10,8 @@ import sys
 from pathlib import Path
 import urllib.request
 
-version = '1.0-2' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!
-
+version = 'dev' # CHANGE TO VERSION NUMBER FOR RELEASE COMMITS!!!!   
+                
 with urllib.request.urlopen("https://api.github.com/repos/craftnut/GZLauncher/tags") as tags: 
     tags = json.load(tags)
     print(tags)

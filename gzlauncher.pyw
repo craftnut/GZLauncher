@@ -5,6 +5,16 @@ import subprocess
 import sys
 from pathlib import Path
 
+import argparse
+
+parser = argparse.ArgumentParser(
+                                prog='GZLauncher',
+                                description='Assists with mod loading in GZDoom',
+                                epilog='Bug report at https://www.github.com/craftnut/GZLauncher')
+                                
+parser.add_argument('--kde-bypass-theme', action='store_true', dest="themeskip") 
+args = parser.parse_args()
+
 from PySide6 import QtCore
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -48,6 +58,12 @@ modList: list[str] = cfg['mod']
 previousCfg: str = cfg['last_used_cfg']
 
 configs = [str(file.relative_to("./cfg")) for file in Path("./cfg").rglob("*.ini")]
+
+def enable_dark():
+    with open("dark.qss", "r") as f:
+        _style = f.read()
+    app.setStyleSheet(_style)
+    
 
 class FileListWidget(QListWidget):
     def __init__(self, parent, correspondingList: list):
@@ -245,8 +261,7 @@ l = Launcher()
 l.resize(320, 550)
 l.show()
 
-with open("dark.qss", "r") as f:
-    _style = f.read()
-    app.setStyleSheet(_style)
-
+if not sys.platform == "linux" or not (os.environ['XDG_CURRENT_DESKTOP'] == "KDE" and not args.themeskip):
+    enable_dark()
+    
 sys.exit(app.exec())
